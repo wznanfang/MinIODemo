@@ -58,11 +58,10 @@ public class MinioUtil {
         String fileName = bucketName + "_" + System.currentTimeMillis() + "_" + format.format(new Date())
                 + originalFilename.substring(originalFilename.lastIndexOf("."));
         //开始上传
-        client.putObject(
-                PutObjectArgs.builder().bucket(bucketName).object(fileName).stream(
-                        file.getInputStream(), file.getSize(), -1)
-                        .contentType(file.getContentType())
-                        .build());
+        client.putObject(PutObjectArgs.builder().bucket(bucketName).object(fileName)
+                .stream(file.getInputStream(), file.getSize(), -1)
+                .contentType(file.getContentType())
+                .build());
         String minioUrl = minioProperties.getEndpoint() + "/" + bucketName + "/" + fileName;
         return minioUrl;
     }

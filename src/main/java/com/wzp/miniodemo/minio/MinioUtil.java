@@ -77,7 +77,7 @@ public class MinioUtil {
     }
 
     /**
-     * 根据bucketName获取信息
+     * 根据bucketName获取桶
      *
      * @param bucketName bucket名称
      */
@@ -87,7 +87,7 @@ public class MinioUtil {
     }
 
     /**
-     * 根据bucketName删除信息
+     * 根据bucketName删除桶
      *
      * @param bucketName bucket名称
      */

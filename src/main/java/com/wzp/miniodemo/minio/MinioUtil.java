@@ -55,8 +55,7 @@ public class MinioUtil {
         String filename = file.getOriginalFilename();
         //新的文件名 = 存储桶文件名_时间戳_格式化时间.后缀名
         //todo 后续更改为md5值作为文件名，方便使用文件的md5值进行文件是否存在的判断，以避免重复上传文件
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
-        String fileName = bucketName + "_" + System.currentTimeMillis() + "_" + format.format(new Date()) + filename.substring(filename.lastIndexOf("."));
+        String fileName = bucketName + "_" + System.currentTimeMillis() + "_" + filename.substring(filename.lastIndexOf("."));
         //开始上传
         putObject(bucketName, fileName, file.getInputStream(), file.getSize(), file.getContentType());
         String minioUrl = getObjectURL(bucketName, fileName, 3);
@@ -104,7 +103,7 @@ public class MinioUtil {
                 .builder()
                 .bucket(bucketName)
                 .object(objectName)
-                .expiry(3, TimeUnit.HOURS)
+                .expiry(expires, TimeUnit.HOURS)
                 .method(Method.GET)
                 .build());
     }

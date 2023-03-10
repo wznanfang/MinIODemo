@@ -20,7 +20,7 @@ public class MinioConfig {
     /**
      * 获取MinioClient
      */
-    @Bean
+    @Bean(name = "minioClient")
     public MinioClient minioClient() {
         return MinioClient.builder()
                 .endpoint(minioProperties.getEndpoint())

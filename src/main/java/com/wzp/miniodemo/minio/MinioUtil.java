@@ -1,20 +1,15 @@
 package com.wzp.miniodemo.minio;
 
 import io.minio.*;
-import io.minio.errors.*;
 import io.minio.http.Method;
 import io.minio.messages.Bucket;
+import io.minio.messages.Item;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.annotation.Order;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -27,9 +22,7 @@ import java.util.concurrent.TimeUnit;
 public class MinioUtil {
 
     @Autowired
-    private MinioProperties minioProperties;
-
-    @Autowired
+    @Qualifier("minioClient")
     private MinioClient minioClient;
 
     /**
@@ -58,8 +51,7 @@ public class MinioUtil {
         String fileName = bucketName + "_" + System.currentTimeMillis() + "_" + filename.substring(filename.lastIndexOf("."));
         //开始上传
         putObject(bucketName, fileName, file.getInputStream(), file.getSize(), file.getContentType());
-        String minioUrl = getObjectURL(bucketName, fileName, 3);
-        return minioUrl;
+        return getObjectURL(bucketName, fileName, 3);
     }
 
     /**
@@ -76,8 +68,7 @@ public class MinioUtil {
      *
      * @param bucketName bucket名称
      */
-    public Optional<Bucket> getBucket(String bucketName) throws IOException, InvalidKeyException, NoSuchAlgorithmException, InsufficientDataException,
-            InvalidResponseException, InternalException, ErrorResponseException, ServerException, XmlParserException, ServerException {
+    public Optional<Bucket> getBucket(String bucketName) throws Exception {
         return minioClient.listBuckets().stream().filter(b -> b.name().equals(bucketName)).findFirst();
     }
 
@@ -185,6 +176,68 @@ public class MinioUtil {
                 .bucket(bucketName)
                 .object(objectName)
                 .build());
+    }
+
+
+    /**
+     * 列出桶里所有的对象
+     *
+     * @param bucketName 桶名字
+     * @param recursive  是否递归查找，如果是false,就模拟文件夹结构查找
+     * @param prefix     对象名称的前缀
+     */
+    public void listObjects(String bucketName, boolean recursive, String prefix) {
+        try {
+            if (minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
+                list(bucketName, recursive, prefix);
+            }
+        } catch (Exception e) {
+            System.out.println("Error occurred: " + e);
+        }
+    }
+
+    private void list(String bucketName, boolean recursive, String prefix) throws Exception {
+        Iterable<Result<Item>> myObjects = minioClient.listObjects(ListObjectsArgs.builder()
+                .bucket(bucketName).recursive(recursive).prefix(prefix).build());
+        for (Result<Item> result : myObjects) {
+            Item item = result.get();
+            if (item.isDir()) {
+                list(bucketName, recursive, item.objectName());
+            } else {
+                System.out.println(item.size() + "---" + item.objectName() + "---" + item.lastModified());
+            }
+        }
+    }
+
+
+    /**
+     * minio桶之间数据复制
+     *
+     * @param sourceBucketName 源数据桶
+     * @param targetBucketName 目标数据桶
+     * @param recursive        是否递归查找，如果是false,就模拟文件夹结构查找
+     * @param prefix           对象名称的前缀
+     */
+    public void copyBuckets(String sourceBucketName, String targetBucketName, boolean recursive, String prefix) {
+        try {
+            createBucket(targetBucketName);
+            copy(sourceBucketName, targetBucketName, recursive, prefix);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+    }
+
+    private void copy(String sourceBucketName, String targetBucketName, boolean recursive, String prefix) throws Exception {
+        Iterable<Result<Item>> myObjects = minioClient.listObjects(ListObjectsArgs.builder()
+                .bucket(sourceBucketName).recursive(recursive).prefix(prefix).build());
+        for (Result<Item> result : myObjects) {
+            Item item = result.get();
+            if (item.isDir()) {
+                copy(sourceBucketName, targetBucketName, recursive, item.objectName());
+            }
+            minioClient.copyObject(CopyObjectArgs.builder().bucket(targetBucketName).object(item.objectName()).source(CopySource.builder()
+                    .bucket(sourceBucketName).object(item.objectName()).build()).build());
+        }
     }
 
 

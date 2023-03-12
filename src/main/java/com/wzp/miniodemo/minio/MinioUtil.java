@@ -1,17 +1,20 @@
 package com.wzp.miniodemo.minio;
 
+import com.wzp.miniodemo.config.ThreadPoolExecutorConfig;
 import io.minio.*;
 import io.minio.http.Method;
 import io.minio.messages.Bucket;
 import io.minio.messages.Item;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StopWatch;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -19,11 +22,13 @@ import java.util.concurrent.TimeUnit;
  * @date 2022/5/30 11:28
  */
 @Component
+@AllArgsConstructor
 public class MinioUtil {
 
-    @Autowired
+
     @Qualifier("minioClient")
     private MinioClient minioClient;
+    private ThreadPoolExecutorConfig threadPoolConfig;
 
     /**
      * 创建bucket
@@ -188,15 +193,29 @@ public class MinioUtil {
      */
     public void listObjects(String bucketName, boolean recursive, String prefix) {
         try {
+            StopWatch sw = new StopWatch();
+            sw.start();
             if (minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
                 list(bucketName, recursive, prefix);
             }
+            sw.stop();
+            System.out.println("消耗时长：" + sw.getTotalTimeMillis());
         } catch (Exception e) {
             System.out.println("Error occurred: " + e);
         }
     }
 
-    private void list(String bucketName, boolean recursive, String prefix) throws Exception {
+
+    /**
+     * 列出桶里所有的对象
+     *
+     * @param bucketName 桶名字
+     * @param recursive  是否递归查找，如果是false,就模拟文件夹结构查找
+     * @param prefix     对象名称的前缀
+     * @throws Exception
+     */
+    public void list(String bucketName, boolean recursive, String prefix) throws Exception {
+        ThreadPoolExecutor executor = threadPoolConfig.getExecutor();
         Iterable<Result<Item>> myObjects = minioClient.listObjects(ListObjectsArgs.builder()
                 .bucket(bucketName).recursive(recursive).prefix(prefix).build());
         for (Result<Item> result : myObjects) {
@@ -204,9 +223,21 @@ public class MinioUtil {
             if (item.isDir()) {
                 list(bucketName, recursive, item.objectName());
             } else {
-                System.out.println(item.size() + "---" + item.objectName() + "---" + item.lastModified());
+                //使用多线程往数据库写入minio文件的信息
+                Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        System.out.println(Thread.currentThread().getName()
+                                + "-----文件名：" + item.objectName() + "-----大小：" + item.size() + "-----修改时间：" + item.lastModified());
+                    }
+                };
+                executor.execute(runnable);
             }
         }
+        executor.shutdown();
+        while (!executor.isTerminated()) {
+        }
+        System.out.println("Finished all threads");
     }
 
 

@@ -1,4 +1,4 @@
-package com.wzp.miniodemo.minio;
+package com.wzp.miniodemo.config;
 
 import io.minio.MinioClient;
 import org.springframework.beans.factory.annotation.Autowired;

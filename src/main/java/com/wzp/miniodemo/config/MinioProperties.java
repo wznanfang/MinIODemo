@@ -1,4 +1,4 @@
-package com.wzp.miniodemo.minio;
+package com.wzp.miniodemo.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

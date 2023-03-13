@@ -1,4 +1,4 @@
-package com.wzp.miniodemo.minio;
+package com.wzp.miniodemo.config;
 
 import io.minio.MinioClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +20,7 @@ public class MinioConfig {
     /**
      * 获取MinioClient
      */
-    @Bean
+    @Bean(name = "minioClient")
     public MinioClient minioClient() {
         return MinioClient.builder()
                 .endpoint(minioProperties.getEndpoint())

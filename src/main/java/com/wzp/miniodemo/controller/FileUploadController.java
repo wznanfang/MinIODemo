@@ -54,7 +54,7 @@ public class FileUploadController {
      */
     @GetMapping("/listObjects")
     public void listObjects() {
-        minioUtil.listObjects("nflj", false, null);
+        minioUtil.listObjects("nflj", true, null);
     }
 
 

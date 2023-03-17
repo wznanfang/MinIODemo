@@ -3,11 +3,17 @@ package com.wzp.miniodemo.rabbitMq;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.PostConstruct;
 
 /**
  * @author zp.wei
  * @date 2023/3/16 17:30
  */
+@Configuration
 public class Consumer {
 
     private static final String EXCHANGE_NAME = "bucketevents";
@@ -18,7 +24,8 @@ public class Consumer {
     //交换机
     private static final String EXCHANGE_TYPE = "fanout";
 
-    public static void main(String[] args) throws Exception {
+    @PostConstruct
+    public void test() throws Exception {
         // 创建连接
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(HOST_NAME);

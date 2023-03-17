@@ -25,6 +25,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'io.minio:minio:8.2.2'
     implementation 'com.rabbitmq:amqp-client:5.16.0'
+    implementation 'com.alibaba:fastjson:2.0.24'
 
 
     compileOnly 'org.projectlombok:lombok'

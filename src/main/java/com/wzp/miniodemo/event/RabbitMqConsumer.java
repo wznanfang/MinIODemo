@@ -25,10 +25,10 @@ public class RabbitMqConsumer {
      *
      * @param message
      */
-//    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "bucketqueue"), exchange = @Exchange(value = "bucketexchange"), key = "bucketelogs"))
-//    public void consumerNoQueue(String message) {
-//        log.info("收到A队列的消息：{}", message);
-//    }
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "bucketqueue"), exchange = @Exchange(value = "bucketExchange"), key = "bucketlogs"))
+    public void consumerNoQueue(String message) {
+        log.info("收到A队列的消息：{}", message);
+    }
 
 
     /**
@@ -36,10 +36,10 @@ public class RabbitMqConsumer {
      *
      * @param message
      */
-    @RabbitListener(queues = "bucketqueue")
-    public void receiveA(Message message) {
-        log.info("收到A队列的消息：{}", new String(message.getBody()));
-    }
+//    @RabbitListener(queues = "bucketqueue")
+//    public void receiveA(Message message) {
+//        log.info("收到A队列的消息：{}", new String(message.getBody()));
+//    }
 
 
 }

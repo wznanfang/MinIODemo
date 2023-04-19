@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
@@ -53,7 +54,7 @@ public class MinioUtil {
         String filename = file.getOriginalFilename();
         //新的文件名 = 存储桶文件名_时间戳_格式化时间.后缀名
         //todo 后续更改为md5值作为文件名，方便使用文件的md5值进行文件是否存在的判断，以避免重复上传文件
-        String fileName = bucketName + "_" + System.currentTimeMillis() + "_" + filename.substring(filename.lastIndexOf("."));
+        String fileName = "/3/" + "_" + System.currentTimeMillis() + "_" + filename.substring(filename.lastIndexOf("."));
         //开始上传
         putObject(bucketName, fileName, file.getInputStream(), file.getSize(), file.getContentType());
         return getObjectURL(bucketName, fileName, 3);
@@ -224,13 +225,7 @@ public class MinioUtil {
                 list(bucketName, recursive, item.objectName());
             } else {
                 //使用多线程往数据库写入minio文件的信息
-                Runnable runnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        System.out.println(Thread.currentThread().getName()
-                                + "-----文件名：" + item.objectName() + "-----大小：" + item.size() + "-----修改时间：" + item.lastModified());
-                    }
-                };
+                Runnable runnable = () -> System.out.println("文件名：" + item.objectName() + "大小：" + item.size() + "修改时间：" + item.lastModified());
                 executor.execute(runnable);
             }
         }

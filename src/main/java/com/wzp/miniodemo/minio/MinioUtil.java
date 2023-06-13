@@ -1,35 +1,48 @@
 package com.wzp.miniodemo.minio;
 
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.io.IoUtil;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.wzp.miniodemo.config.ThreadPoolExecutorConfig;
 import io.minio.*;
 import io.minio.http.Method;
 import io.minio.messages.Bucket;
 import io.minio.messages.Item;
-import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @author zp.wei
  * @date 2022/5/30 11:28
  */
 @Component
-@AllArgsConstructor
 public class MinioUtil {
 
 
+    @Autowired
     @Qualifier("minioClient")
     private MinioClient minioClient;
     private ThreadPoolExecutorConfig threadPoolConfig;
+
+    @Autowired
+    @Qualifier("myMinioS3Client")
+    private AmazonS3 minioS3Client;
 
     /**
      * 创建bucket
@@ -54,10 +67,10 @@ public class MinioUtil {
         String filename = file.getOriginalFilename();
         //新的文件名 = 存储桶文件名_时间戳_格式化时间.后缀名
         //todo 后续更改为md5值作为文件名，方便使用文件的md5值进行文件是否存在的判断，以避免重复上传文件
-        String fileName = "/3/" + "_" + System.currentTimeMillis() + "_" + filename.substring(filename.lastIndexOf("."));
+        filename = "/3/" + "_" + System.currentTimeMillis() + "_" + filename.substring(filename.lastIndexOf("."));
         //开始上传
-        putObject(bucketName, fileName, file.getInputStream(), file.getSize(), file.getContentType());
-        return getObjectURL(bucketName, fileName, 3);
+        putObject(bucketName, filename, file.getInputStream(), file.getSize(), file.getContentType());
+        return getObjectURL(bucketName, filename, 3);
     }
 
     /**
@@ -264,6 +277,64 @@ public class MinioUtil {
             minioClient.copyObject(CopyObjectArgs.builder().bucket(targetBucketName).object(item.objectName()).source(CopySource.builder()
                     .bucket(sourceBucketName).object(item.objectName()).build()).build());
         }
+    }
+
+    /**
+     * 创建目录/上传文件
+     *
+     * @param objectName 目录/文件名称
+     */
+    public void putObject(Long objectName) throws Exception {
+        String bucket = "111";
+        String name = objectName + "/";
+        minioClient.putObject(PutObjectArgs.builder().bucket(bucket).object(name).stream(
+                new ByteArrayInputStream(new byte[0]), 0, 0).build());
+    }
+
+
+    /**
+     * s3方式获取桶内所有文件
+     */
+    public void listObjectsV2(String bucket) {
+        List<String> res = new ArrayList<>();
+        ListObjectsRequest request = new ListObjectsRequest();
+        request.setBucketName(bucket);
+        boolean isTruncated = true;
+        while (isTruncated) {
+            ObjectListing objectListing = minioS3Client.listObjects(request);
+            List<S3ObjectSummary> objectSummaries = objectListing.getObjectSummaries();
+            if (objectSummaries != null && objectSummaries.size() != 0) {
+                List<String> list = objectSummaries.stream().map(x -> x.getKey()).collect(Collectors.toList());
+                res.addAll(list);
+                String nextMarker = objectListing.getNextMarker();
+                request.setMarker(nextMarker);
+            }
+            //本次查询结果后面是否还有文件待查询。
+            isTruncated = objectListing.isTruncated();
+        }
+        System.out.println(res);
+        res.forEach(item -> download(item, bucket));
+
+    }
+
+    /**
+     * 下载指定文件
+     *
+     * @return inputStream
+     */
+    public InputStream download(String objectName, String bucket) {
+        InputStream inputStream;
+        try {
+            //从Minio下载该文件
+            GetObjectArgs.Builder builder = GetObjectArgs.builder().bucket(bucket).offset(0L);
+            GetObjectArgs getObjectArgs = builder.object(objectName).build();
+            inputStream = minioClient.getObject(getObjectArgs);
+            BufferedOutputStream out = FileUtil.getOutputStream("E:/img/absence3/" + objectName);
+            IoUtil.copy(inputStream, out);
+        } catch (Exception e) {
+            return null;
+        }
+        return inputStream;
     }
 
 

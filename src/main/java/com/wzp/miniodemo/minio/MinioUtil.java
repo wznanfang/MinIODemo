@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,7 @@ public class MinioUtil {
     @Autowired
     @Qualifier("minioClient")
     private MinioClient minioClient;
+    @Autowired
     private ThreadPoolExecutorConfig threadPoolConfig;
 
     @Autowired
@@ -65,9 +67,6 @@ public class MinioUtil {
         createBucket(bucketName);
         //文件名
         String filename = file.getOriginalFilename();
-        //新的文件名 = 存储桶文件名_时间戳_格式化时间.后缀名
-        //todo 后续更改为md5值作为文件名，方便使用文件的md5值进行文件是否存在的判断，以避免重复上传文件
-        filename = "/3/" + "_" + System.currentTimeMillis() + "_" + filename.substring(filename.lastIndexOf("."));
         //开始上传
         putObject(bucketName, filename, file.getInputStream(), file.getSize(), file.getContentType());
         return getObjectURL(bucketName, filename, 3);
@@ -229,7 +228,6 @@ public class MinioUtil {
      * @throws Exception
      */
     public void list(String bucketName, boolean recursive, String prefix) throws Exception {
-        ThreadPoolExecutor executor = threadPoolConfig.getExecutor();
         Iterable<Result<Item>> myObjects = minioClient.listObjects(ListObjectsArgs.builder()
                 .bucket(bucketName).recursive(recursive).prefix(prefix).build());
         for (Result<Item> result : myObjects) {
@@ -238,12 +236,10 @@ public class MinioUtil {
                 list(bucketName, recursive, item.objectName());
             } else {
                 //使用多线程往数据库写入minio文件的信息
-                Runnable runnable = () -> System.out.println("文件名：" + item.objectName() + "大小：" + item.size() + "修改时间：" + item.lastModified());
-                executor.execute(runnable);
+                System.out.println("文件名：" + item.objectName() + "大小：" + item.size() + "修改时间：" + item.lastModified());
+                InputStream inputStream = getObject(bucketName, item.objectName());
+                FileUtil.writeFromStream(inputStream, "E:/img/" + item.objectName());
             }
-        }
-        executor.shutdown();
-        while (!executor.isTerminated()) {
         }
         System.out.println("Finished all threads");
     }
@@ -313,7 +309,7 @@ public class MinioUtil {
             isTruncated = objectListing.isTruncated();
         }
         System.out.println(res);
-        res.forEach(item -> download(item, bucket));
+//        res.forEach(item -> download(item, bucket));
 
     }
 
@@ -329,8 +325,7 @@ public class MinioUtil {
             GetObjectArgs.Builder builder = GetObjectArgs.builder().bucket(bucket).offset(0L);
             GetObjectArgs getObjectArgs = builder.object(objectName).build();
             inputStream = minioClient.getObject(getObjectArgs);
-            BufferedOutputStream out = FileUtil.getOutputStream("E:/img/absence3/" + objectName);
-            IoUtil.copy(inputStream, out);
+            FileUtil.writeFromStream(inputStream, new File("E:/img/absence3/" + objectName));
         } catch (Exception e) {
             return null;
         }

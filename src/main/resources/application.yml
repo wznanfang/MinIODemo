@@ -5,6 +5,15 @@ spring:
     multipart:
       max-file-size: 100MB
       max-request-size: 100MB
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: guest
+    password: guest
+    exchangeName: bucketexchange
+    queueName: bucketqueue
+    routingKey: bucketelogs
+
 
 minio:
   endpoint: http://localhost:9001

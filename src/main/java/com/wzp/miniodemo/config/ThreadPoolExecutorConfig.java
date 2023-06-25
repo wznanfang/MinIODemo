@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 public class ThreadPoolExecutorConfig {
 
     public ThreadPoolExecutor getExecutor() {
-        return new ThreadPoolExecutor(2, 6, 3, TimeUnit.SECONDS,
+        return new ThreadPoolExecutor(6, 12, 30, TimeUnit.SECONDS,
                 new ArrayBlockingQueue<>(10), new ThreadPoolExecutor.CallerRunsPolicy());
     }
 

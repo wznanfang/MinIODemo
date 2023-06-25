@@ -25,7 +25,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'io.minio:minio:8.2.2'
 
-
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'

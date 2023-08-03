@@ -17,6 +17,8 @@ spring:
 
 minio:
   endpoint: http://localhost:9001
-#  endpoint: http://192.168.15.234:31657
   accessKey: minioadmin
   secretKey: minioadmin
+#  endpoint: http://192.168.15.234:32421
+#  accessKey: wxfcAYflKOZofVva
+#  secretKey: IlS8buLdLJR4RlHZzm5Y3lHDyy2qBSqn

@@ -1,12 +1,10 @@
 package com.wzp.miniodemo.minio;
 
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.io.IoUtil;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.wzp.miniodemo.config.ThreadPoolExecutorConfig;
 import io.minio.*;
 import io.minio.http.Method;
 import io.minio.messages.Bucket;
@@ -14,17 +12,14 @@ import io.minio.messages.Item;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StopWatch;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -39,8 +34,6 @@ public class MinioUtil {
     @Autowired
     @Qualifier("minioClient")
     private MinioClient minioClient;
-    @Autowired
-    private ThreadPoolExecutorConfig threadPoolConfig;
 
     @Autowired
     @Qualifier("myMinioS3Client")
@@ -125,11 +118,7 @@ public class MinioUtil {
      * @return ⼆进制流
      */
     public InputStream getObject(String bucketName, String objectName) throws Exception {
-        return minioClient.getObject(GetObjectArgs
-                .builder()
-                .bucket(bucketName)
-                .object(objectName)
-                .build());
+        return minioClient.getObject(GetObjectArgs.builder().bucket(bucketName).object(objectName).build());
     }
 
     /**
@@ -174,11 +163,7 @@ public class MinioUtil {
      * @throws Exception https://docs.minio.io/cn/java-client-api-reference.html#statObject
      */
     public StatObjectResponse getObjectInfo(String bucketName, String objectName) throws Exception {
-        return minioClient.statObject(StatObjectArgs
-                .builder()
-                .bucket(bucketName)
-                .object(objectName)
-                .build());
+        return minioClient.statObject(StatObjectArgs.builder().bucket(bucketName).object(objectName).build());
     }
 
     /**
@@ -189,11 +174,7 @@ public class MinioUtil {
      * @throws Exception https://docs.minio.io/cn/java-client-apireference.html#removeObject
      */
     public void removeObject(String bucketName, String objectName) throws Exception {
-        minioClient.removeObject(RemoveObjectArgs
-                .builder()
-                .bucket(bucketName)
-                .object(objectName)
-                .build());
+        minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(objectName).build());
     }
 
 
@@ -206,13 +187,9 @@ public class MinioUtil {
      */
     public void listObjects(String bucketName, boolean recursive, String prefix) {
         try {
-            StopWatch sw = new StopWatch();
-            sw.start();
             if (minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
                 list(bucketName, recursive, prefix);
             }
-            sw.stop();
-            System.out.println("消耗时长：" + sw.getTotalTimeMillis());
         } catch (Exception e) {
             System.out.println("Error occurred: " + e);
         }
@@ -228,8 +205,7 @@ public class MinioUtil {
      * @throws Exception
      */
     public void list(String bucketName, boolean recursive, String prefix) throws Exception {
-        Iterable<Result<Item>> myObjects = minioClient.listObjects(ListObjectsArgs.builder()
-                .bucket(bucketName).recursive(recursive).prefix(prefix).build());
+        Iterable<Result<Item>> myObjects = minioClient.listObjects(ListObjectsArgs.builder().bucket(bucketName).recursive(recursive).prefix(prefix).build());
         for (Result<Item> result : myObjects) {
             Item item = result.get();
             if (item.isDir()) {
@@ -270,8 +246,8 @@ public class MinioUtil {
             if (item.isDir()) {
                 copy(sourceBucketName, targetBucketName, recursive, item.objectName());
             }
-            minioClient.copyObject(CopyObjectArgs.builder().bucket(targetBucketName).object(item.objectName()).source(CopySource.builder()
-                    .bucket(sourceBucketName).object(item.objectName()).build()).build());
+            minioClient.copyObject(CopyObjectArgs.builder().bucket(targetBucketName).object(item.objectName())
+                    .source(CopySource.builder().bucket(sourceBucketName).object(item.objectName()).build()).build());
         }
     }
 
@@ -300,7 +276,7 @@ public class MinioUtil {
             ObjectListing objectListing = minioS3Client.listObjects(request);
             List<S3ObjectSummary> objectSummaries = objectListing.getObjectSummaries();
             if (objectSummaries != null && objectSummaries.size() != 0) {
-                List<String> list = objectSummaries.stream().map(x -> x.getKey()).collect(Collectors.toList());
+                List<String> list = objectSummaries.stream().map(S3ObjectSummary::getKey).collect(Collectors.toList());
                 res.addAll(list);
                 String nextMarker = objectListing.getNextMarker();
                 request.setMarker(nextMarker);
@@ -309,7 +285,6 @@ public class MinioUtil {
             isTruncated = objectListing.isTruncated();
         }
         System.out.println(res);
-//        res.forEach(item -> download(item, bucket));
 
     }
 
@@ -318,14 +293,11 @@ public class MinioUtil {
      *
      * @return inputStream
      */
-    public InputStream download(String objectName, String bucket) {
+    public InputStream download(String bucket, String objectName) {
         InputStream inputStream;
         try {
-            //从Minio下载该文件
-            GetObjectArgs.Builder builder = GetObjectArgs.builder().bucket(bucket).offset(0L);
-            GetObjectArgs getObjectArgs = builder.object(objectName).build();
-            inputStream = minioClient.getObject(getObjectArgs);
-            FileUtil.writeFromStream(inputStream, new File("E:/img/absence3/" + objectName));
+            inputStream = getObject(bucket, objectName);
+            FileUtil.writeFromStream(inputStream, new File("E:/img/" + objectName));
         } catch (Exception e) {
             return null;
         }

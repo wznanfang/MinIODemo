@@ -49,23 +49,6 @@ public class MinioUtil {
     }
 
     /**
-     * 上传文件
-     */
-    public String uploadFile(MultipartFile file, String bucketName) throws Exception {
-        //判断文件是否为空
-        if (null == file || 0 == file.getSize()) {
-            return "文件不存在，请重新检查！";
-        }
-        //判断存储桶是否存在  不存在则创建
-        createBucket(bucketName);
-        //文件名
-        String filename = file.getOriginalFilename();
-        //开始上传
-        putObject(bucketName, filename, file.getInputStream(), file.getSize(), file.getContentType());
-        return getObjectURL(bucketName, filename, 3);
-    }
-
-    /**
      * 获取全部bucket
      *
      * @return
@@ -90,6 +73,57 @@ public class MinioUtil {
      */
     public void removeBucket(String bucketName) throws Exception {
         minioClient.removeBucket(RemoveBucketArgs.builder().bucket(bucketName).build());
+    }
+
+    /**
+     * 上传文件
+     */
+    public String uploadFile(MultipartFile file, String bucketName) throws Exception {
+        //判断文件是否为空
+        if (null == file || 0 == file.getSize()) {
+            return "文件不存在，请重新检查！";
+        }
+        //判断存储桶是否存在  不存在则创建
+        createBucket(bucketName);
+        //文件名
+        String filename = file.getOriginalFilename();
+        //开始上传
+        putObject(bucketName, filename, file.getInputStream(), file.getSize(), file.getContentType());
+        return getObjectURL(bucketName, filename, 3);
+    }
+
+    /**
+     * 上传⽂件
+     *
+     * @param bucketName  bucket名称
+     * @param objectName  ⽂件名称
+     * @param stream      ⽂件流
+     * @param size        ⼤⼩
+     * @param contextType 类型
+     * @throws Exception https://docs.minio.io/cn/java-client-api-reference.html#putObject
+     */
+    public void putObject(String bucketName, String objectName, InputStream stream, long size, String contextType) throws Exception {
+        minioClient.putObject(PutObjectArgs.builder()
+                .bucket(bucketName)
+                .object(objectName)
+                .stream(stream, size, -1)
+                .contentType(contextType).build());
+    }
+
+    /**
+     * 上传⽂件
+     *
+     * @param bucketName bucket名称
+     * @param objectName ⽂件名称
+     * @param stream     ⽂件流
+     * @throws Exception https://docs.minio.io/cn/java-client-api-reference.html#putObject
+     */
+    public void putObject(String bucketName, String objectName, InputStream stream) throws Exception {
+        minioClient.putObject(PutObjectArgs.builder()
+                .bucket(bucketName)
+                .object(objectName)
+                .stream(stream, stream.available(), -1)
+                .contentType(objectName.substring(objectName.lastIndexOf("."))).build());
     }
 
     /**
@@ -119,40 +153,6 @@ public class MinioUtil {
      */
     public InputStream getObject(String bucketName, String objectName) throws Exception {
         return minioClient.getObject(GetObjectArgs.builder().bucket(bucketName).object(objectName).build());
-    }
-
-    /**
-     * 上传⽂件
-     *
-     * @param bucketName bucket名称
-     * @param objectName ⽂件名称
-     * @param stream     ⽂件流
-     * @throws Exception https://docs.minio.io/cn/java-client-api-reference.html#putObject
-     */
-    public void putObject(String bucketName, String objectName, InputStream stream) throws Exception {
-        minioClient.putObject(PutObjectArgs.builder()
-                .bucket(bucketName)
-                .object(objectName)
-                .stream(stream, stream.available(), -1)
-                .contentType(objectName.substring(objectName.lastIndexOf("."))).build());
-    }
-
-    /**
-     * 上传⽂件
-     *
-     * @param bucketName  bucket名称
-     * @param objectName  ⽂件名称
-     * @param stream      ⽂件流
-     * @param size        ⼤⼩
-     * @param contextType 类型
-     * @throws Exception https://docs.minio.io/cn/java-client-api-reference.html#putObject
-     */
-    public void putObject(String bucketName, String objectName, InputStream stream, long size, String contextType) throws Exception {
-        minioClient.putObject(PutObjectArgs.builder()
-                .bucket(bucketName)
-                .object(objectName)
-                .stream(stream, size, -1)
-                .contentType(contextType).build());
     }
 
     /**
@@ -259,8 +259,7 @@ public class MinioUtil {
     public void putObject(Long objectName) throws Exception {
         String bucket = "111";
         String name = objectName + "/";
-        minioClient.putObject(PutObjectArgs.builder().bucket(bucket).object(name).stream(
-                new ByteArrayInputStream(new byte[0]), 0, 0).build());
+        minioClient.putObject(PutObjectArgs.builder().bucket(bucket).object(name).stream(new ByteArrayInputStream(new byte[0]), 0, 0).build());
     }
 
 
